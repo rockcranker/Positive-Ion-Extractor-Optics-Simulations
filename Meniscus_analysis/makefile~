@@ -1,0 +1,12 @@
+CC = g++
+LDFLAGS = `pkg-config --libs ibsimu-1.0.6`
+CXXFLAGS = -Wall -g `pkg-config --cflags ibsimu-1.0.6`
+
+analysis: analysis.o
+	$(CC) -o analysis analysis.o $(LDFLAGS)
+
+analysis.o: analysis.cpp
+	$(CC) -c -o analysis.o analysis.cpp $(CXXFLAGS)
+
+clean:
+	$(RM) *~ *.o analysis

@@ -1,0 +1,136 @@
+#include <random>
+#include <fstream>
+#include <iomanip>
+#include <limits>
+#include <vector>
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <filesystem>
+#include <string>
+#include <cmath>
+#include "TROOT.h"
+#include "TCanvas.h"
+#include "TTree.h"
+#include "TFile.h"
+#include "TLine.h"
+#include "TRandom.h"
+#include "TH1F.h"
+#include "TF1.h"
+#define _USE_MATH_DEFINES
+#include "math.h"
+#include <TGraph.h>
+#include <TVector.h>
+using namespace std;
+namespace fs = std::filesystem;
+
+int main( int argc, char **argv )
+{
+  TFile *file = TFile::Open("results.root", "READ");
+  if (!file || file->IsZombie()) {
+    std::cerr << "Error opening file!" << std::endl;
+    return 1;
+  }
+
+  // Retrieve the histogram
+  TH1D *h1 = dynamic_cast<TH1D*>(file->Get("h1"));  
+  if (!h1) {
+    std::cerr << "Histogram not found!" << std::endl;
+    file->Close();
+    return 1;
+  }
+
+  size_t nbins = h1->GetNbinsX();
+  double xmin = h1->GetBinLowEdge(1);
+  double xmax = h1->GetBinLowEdge(nbins+1);
+
+  double theta = 60 * M_PI / 180;
+  double c = 299792458;
+  double ha = 656.297;
+
+  double E = 10e3; // ev
+  
+  double m1 = 938.27e6; // ev
+  double m2 = 2 * m1;
+  double m3 = 3 * m1;
+
+  double b1 = sqrt(1 - (m1/(E+m1)) * (m1/(E+m1)));
+  double b2 = sqrt(1 - (m2/(E+m2)) * (m2/(E+m2)));
+  double b3 = sqrt(1 - (m3/(E+m3)) * (m3/(E+m3)));
+
+  double h1c = ha * (1 - b1 * cos(theta))/(sqrt(1 - b1 * b1));
+  double h2c = ha * (1 - b2 * cos(theta))/(sqrt(1 - b2 * b2));
+  double h3c = ha * (1 - b3 * cos(theta))/(sqrt(1 - b3 * b3));
+  double edge_offset = 0.5; //nm
+  double e12 = (h1c + h2c)/2;
+  double e23 = (h2c + h3c)/2;
+  double e1 = h1c - edge_offset;
+  double e3 = h3c + edge_offset;
+
+    
+  TF1 *f1 = new TF1("f1","[0]*exp(-0.5*((x-[1])/[2])^2) + [3]*exp(-0.5*((x-[1])/[4])^2)",e1,e12);
+  TF1 *f2 = new TF1("f2","[0]*exp(-0.5*((x-[1])/[2])^2) + [3]*exp(-0.5*((x-[1])/[4])^2)",e12, e23);
+  TF1 *f3 = new TF1("f3","[0]*exp(-0.5*((x-[1])/[2])^2) + [3]*exp(-0.5*((x-[1])/[4])^2)", e23, e3);
+  f1->SetParameter(0,200000);
+  f1->SetParameter(1,h1c);
+  f1->SetParameter(2,0.02);
+  f1->SetParameter(3,10000);
+  f1->SetParameter(4,0.04);
+  
+  f2->SetParameter(0,200000);
+  f2->SetParameter(1,h2c);
+  f2->SetParameter(2,0.02);
+  f2->SetParameter(3,100000);
+  f2->SetParameter(4,0.03);
+  
+  f3->SetParameter(0,200000);
+  f3->SetParameter(1,h3c);
+  f3->SetParameter(2,0.02);
+  f3->SetParameter(3,100000);
+  f3->SetParameter(4,0.03);
+  
+  f1->SetNpx(1000);
+  h1->Fit(f1, "LR");
+  
+  f2->SetNpx(1000);
+  h1->Fit(f2, "LR+");
+  
+  f3->SetNpx(1000);
+  h1->Fit(f3, "LR+");
+
+  double std1 = f1->GetParameter(2);
+  double w1c = sqrt(2) * std1;
+  cout<<"1_e width core 1 = " << w1c <<endl;
+  double mid1 = f1->GetMaximumX();
+  double max1 = f1->GetMaximum();
+  double xl1 = f1->GetX(max1/M_E,e1, mid1);
+  double xr1 = f1->GetX(max1/M_E, mid1, e12);
+  double w1 = (xr1 - xl1)/2;
+  cout<<"1_e width 1 = " << w1 <<endl;
+
+  double std2 = f2->GetParameter(2);
+  double w2c = sqrt(2) * std2;
+  cout<<"1_e width  core 2 = " << w2c <<endl;
+  double mid2 = f2->GetMaximumX();
+  double max2 = f2->GetMaximum();
+  double xl2 = f2->GetX(max2/M_E,e12, mid2);
+  double xr2 = f2->GetX(max2/M_E, mid2, e23);
+  double w2 = (xr2 - xl2)/2;
+  cout<<"1_e width 2 = " << w2 <<endl;
+
+  double std3 = f3->GetParameter(2);
+  double w3c = sqrt(2) * std3;
+  cout<<"1_e width core 3 = " << w3c <<endl;
+  double mid3 = f3->GetMaximumX();
+  double max3 = f3->GetMaximum();
+  double xl3 = f3->GetX(max3/M_E, e23, mid3);
+  double xr3 = f3->GetX(max3/M_E, mid3, e3);
+  double w3 = (xr3 - xl3)/2;
+  cout<<"1_e width 3 = " << w3 <<endl;
+
+  TCanvas *c1 = new TCanvas("c1", "BES Results", 2000, 1000);
+  h1->Draw();
+  c1->SaveAs("h_fit.png");
+  
+  return( 0 );
+}

@@ -1,0 +1,261 @@
+#include <fstream>
+#include <iomanip>
+#include <limits>
+#include "meshvectorfield.hpp"
+#include "dxf_solid.hpp"
+#include "mydxffile.hpp"
+#include "gtkplotter.hpp"
+#include "geomplotter.hpp"
+#include "geometry.hpp"
+#include "func_solid.hpp"
+#include "epot_efield.hpp"
+#include "error.hpp"
+#include "ibsimu.hpp"
+#include "trajectorydiagnostics.hpp"
+#include "particledatabase.hpp"
+#include "particlediagplotter.hpp"
+#include <palette.hpp>
+#include "sciplot/sciplot.hpp"
+#include <vector>
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <filesystem>
+#include <string>
+#include <cmath>
+
+#include "TROOT.h"
+
+#include "TCanvas.h"
+#include "TTree.h"
+#include "TFile.h"
+#include "TLine.h"
+#include "TRandom.h"
+#include "TH1F.h"
+#include "TF1.h"
+
+#define _USE_MATH_DEFINES
+#include "math.h"
+#include <TGraph.h>
+#include <TVector.h>
+
+
+
+using namespace std;
+namespace fs = std::filesystem;
+
+void simu( int argc, char **argv )
+{
+  std::ifstream is_geom( "geom.dat" );
+  Geometry geom( is_geom );
+  is_geom.close();
+  
+  std::ifstream is_pdb( "pdb.dat" );
+  ParticleDataBase3D pdb( is_pdb, geom);
+  is_pdb.close();
+  
+  size_t npart = 0;
+  size_t pmax = pdb.size();
+  
+  vector<Particle3D> pvec;
+  vector<double> px;
+  vector<double> py;
+  vector<double> pz;
+  vector<double> pvx;
+  vector<double> pvy;
+  vector<double> pvz;
+  vector<double> pm;
+
+  std::ifstream inputSet;
+  inputSet.open("parameters.txt");
+  std::string dirName;
+  std::string line;
+  double lSim;
+  if ( inputSet.is_open() ) {
+    inputSet >> dirName;
+    getline(inputSet, line);
+    getline(inputSet, line);
+    lSim = stod(line);
+  }
+  inputSet.close();
+  
+  for( size_t k = 0; k < pmax; k++ ) {
+
+    Particle3D &pp = pdb.particle( k );
+
+    // Skip ions not at the end
+    if( pp(PARTICLE_Z) < lSim - 0.0005 ){
+      continue;
+    }
+
+    // Plot particle I, m, coordinates
+    // 3D has 7 coordinates
+
+    pvec.push_back(pp);
+    px.push_back(pp(1));
+    pvx.push_back(pp(2));
+    py.push_back(pp(3));
+    pvy.push_back(pp(4));
+    pz.push_back(pp(5));
+    pvz.push_back(pp(6));
+    pm.push_back(pp.m());
+    npart++;
+  }
+
+  vector<double> pE;
+  vector<double> xAng;
+  vector<double> yAng;
+  double E_temp;
+  double Ax;
+  double Ay;
+
+  double theta = 75 * M_PI/180;
+  double w = 1.5 * 10^-3;
+  double beam_lower_bound = -0.02;
+  double mBES = tan(theta);
+  double BES_width = 0.0005;
+  double lz = 1/sqrt(1 + mBES*mBES);
+  double ly = 0;
+  double lx = mBES/sqrt(1 + mBES*mBES); 
+
+  double del = 0.001;
+  double BES_min_z = lSim + del;
+
+  double mx;
+  double my;
+  double xs;
+  double ys;
+  double zs;
+  double z_int;
+  double x_int;
+  double y_int;
+
+  vector<double> BES_x;
+  vector<double> BES_y;
+  vector<double> BES_z;
+  vector<double> BES_theta;
+  vector<double> BES_alpha;
+  vector<double> BES_beta;
+  vector<double> BES_h;
+  vector<double> BES_m;
+  vector<Particle3D> BESp;
+  int nBES = 0;
+
+  double vmag;
+  double vxn;
+  double vyn;
+  double vzn;
+
+  double alpha;
+  double beta;
+  double ha = 656.28; //nm
+  double h;
+
+  ofstream fileBES( "BES_data.txt" );
+  fileBES << setw(12) << "m ";
+  fileBES << setw(12) << "alpha ";
+  fileBES << setw(12) << "beta ";
+  fileBES << setw(12) << "h ";
+  fileBES << "\n";
+  
+  for (size_t j = 0; j < npart; j++){
+    ys = py[j];
+    xs = px[j];
+    zs = pz[j];
+
+    my = pvy[j]/pvz[j];
+    mx = pvx[j]/pvz[j];
+
+    z_int = (xs - beam_lower_bound + mBES*BES_min_z - mx * zs)/(mBES - mx);
+    x_int = xs + mx * (z_int - BES_min_z);
+    y_int = ys + my * (z_int - BES_min_z);
+    
+    if (abs(y_int) <= BES_width){
+      BES_x.push_back(x_int);
+      BES_y.push_back(y_int);
+      BES_z.push_back(z_int);
+      BES_theta.push_back(atan2(pvx[j], pvz[j]));
+      BESp.push_back(pvec[j]);
+      BES_m.push_back(pm[j]);
+      nBES++;
+
+      // normalized velocity vector
+      vmag = sqrt(pvx[j]*pvx[j] + pvy[j]*pvy[j] + pvz[j]*pvz[j]);
+      vxn = pvx[j]/vmag;
+      vyn = pvy[j]/vmag;
+      vzn = pvz[j]/vmag;
+
+      alpha = acos(vxn * lx + vyn * ly + vzn * lz);
+      beta = vmag/(299792458);
+      h = ha * (1 - beta * cos(alpha))/(sqrt(1 - beta * beta));
+
+      BES_alpha.push_back(alpha);
+      BES_beta.push_back(beta);
+      BES_h.push_back(h);
+
+      fileBES << setw(12) << pm[j] << " ";
+      fileBES << setw(12) << alpha << " ";
+      fileBES << setw(12) << beta << " ";
+      fileBES << setw(12) << h << " ";
+      fileBES << "\n";
+    }
+  }
+
+  double max_h = ha + 0.01;
+  double min_h = *std::min_element(BES_h.begin(), BES_h.end());
+
+  size_t nbins = 500;
+
+  std::vector<double> w(BES_h.size(),1); // weights vector
+  auto h1 = new TH1D("h1", "BES Results", nbins, min_h,max_h);
+  h1->FillN(nBES,BES_h.data(),w.data());
+
+  int b_max = h1->GetMaximumBin();
+  TLine *line_ha = new TLine(ha, 0, ha, h1->GetBinContent(b_max));
+  line_ha->SetLineColor(kRed);
+  line_ha->SetLineWidth(2);
+
+
+  TCanvas *ch = new TCanvas("ch", "Canvas BES Hist", 800, 400);
+  h1->Draw();
+  line_ha->Draw();
+  ch->SaveAs("BES_out.png");
+
+  bool BES_sample_viz = true;
+  if (BES_sample_viz){
+    double xarr[nBES];
+    std::copy(BES_x.begin(), BES_x.end(), xarr);
+    double yarr[nBES];
+    std::copy(BES_y.begin(), BES_y.end(), yarr);
+    double zarr[nBES];
+    std::copy(BES_z.begin(), BES_z.end(), zarr);
+    TGraph *g = new TGraph(nBES, zarr, xarr);
+    TCanvas *c1 = new TCanvas("c1", "z-x", 800, 400);
+    g->Draw("AP");
+    c1->SaveAs("z_x.png");
+    TGraph *g2 = new TGraph(nBES, zarr, yarr);
+    TCanvas *c2 = new TCanvas("c2", "z-y", 800, 400);
+    g2->Draw("AP");
+    c2->SaveAs("z_y.png");
+    cout << "Particles: " << npart << "\n";
+    cout << "BES Particles: " << nBES << "\n";
+
+    Vec3D vec1 = Vec3D(1,2,3);
+    cout << vec1[2] << "\n";
+  }
+
+  
+}
+
+
+int main( int argc, char **argv )
+{
+
+
+  ibsimu.set_message_threshold( MSG_VERBOSE, 1 );
+  ibsimu.set_thread_count( 4 );
+  simu( argc, argv );
+
+
+  return( 0 );
+}

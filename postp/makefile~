@@ -1,0 +1,16 @@
+CC = g++
+LIBS = `pkg-config --libs ibsimu-1.0.6`
+LDFLAGS = -Wall -g
+CXXFLAGS = -Wall -g `pkg-config --cflags ibsimu-1.0.6`
+CXXFLAGS += -c -g -Wall `root-config --cflags`
+LDFLAGS += `root-config --glibs`
+
+
+postp: postp.o
+	$(CC) $(LDFLAGS) $^ $(LIBS) -o $@
+
+.cpp.o:
+	$(CC) $(CXXFLAGS) -c $< -o $@
+
+clean:
+	$(RM) *.o  postp *~
