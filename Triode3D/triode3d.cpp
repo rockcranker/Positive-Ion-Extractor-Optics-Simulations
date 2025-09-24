@@ -78,7 +78,7 @@ const int NSlit = (int)(wSlit/lMesh) * (int)(hSlit/lMesh) * ppc; // Expected par
 
 
 // Simulation iteration cycles
-const int N_cycles = 20;
+const int N_cycles = 10;
 
 // PG geometry w/ Pierce angle 
 bool solid1( double x, double y, double z )

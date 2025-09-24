@@ -184,6 +184,17 @@ void simu( int argc, char **argv )
 
   // Write output file containing all particles
   ofstream fileOut( "particles_out.txt" );
+  // column headers
+  fileOut << setw(12) << "Current"<< " ";
+  fileOut << setw(12) << "Mass"<< " ";
+  fileOut << setw(12) << "Mass #"<< " ";
+  fileOut << setw(12) << "Sim time"<< " ";
+  fileOut << setw(12) << "x"<< " ";
+  fileOut << setw(12) << "vx"<< " ";
+  fileOut << setw(12) << "y"<< " ";
+  fileOut << setw(12) << "vy"<< " ";
+  fileOut << setw(12) << "z"<< " ";
+  fileOut << setw(12) << "vz\n";
 
   // particle data setup
   size_t npart = 0;

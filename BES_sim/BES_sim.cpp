@@ -149,7 +149,7 @@ void simu( int argc, char **argv )
   double beam_lower_bound = -0.02;
   double xT = 0.099;
   double xTl = xT - beam_lower_bound;
-  double theta = 45 * M_PI/180;
+  double theta = 75 * M_PI/180;
   double del = 0.01;
   double zTl = (xTl)/tan(theta);
   double zT = lSim + del + zTl;
@@ -172,7 +172,7 @@ void simu( int argc, char **argv )
 
   // simulation bundles parameters
   int n_seg = 40;
-  double n_bund = 4;
+  double n_bund = 1;
 
   // Stop particles
   double BES_width = acceptance * Lmax + 2 * optic_rad;
