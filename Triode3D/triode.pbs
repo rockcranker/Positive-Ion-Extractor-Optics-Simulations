@@ -1,0 +1,14 @@
+# !/bin/bash
+#PBS -l select=1:mem=60gb:ncpus=4:mpiprocs=4:host=RAT4
+#PBS -l walltime=60:00:00
+#PBS -m ae
+#PBS -k oe
+#PBS -j oe
+#PBS -M igor.morozov@igi.cnr.it
+#PBS -r n
+#PBS -V
+
+echo Execution on $HOSTNAME
+cd /home/morozov/Simulations/Triode3D
+./triode3d
+
