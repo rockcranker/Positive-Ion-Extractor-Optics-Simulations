@@ -4,7 +4,7 @@
 #PBS -m ae
 #PBS -k oe
 #PBS -j oe
-#PBS -M igor.morozov@igi.cnr.it
+##PBS -M your.email@igi.cnr.it
 #PBS -r n
 #PBS -V
 

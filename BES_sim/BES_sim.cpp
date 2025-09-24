@@ -147,10 +147,10 @@ void simu( int argc, char **argv )
   double acceptance = 1.7e-3;
   double optic_rad = 5e-3;
   double beam_lower_bound = -0.02;
-  double xT = 0.099;
+  double xT = 0.099; // Telescope position, x direction
   double xTl = xT - beam_lower_bound;
-  double theta = 75 * M_PI/180;
-  double del = 0.01;
+  double theta = 75 * M_PI/180; // Telescope LOS angle relative to beam
+  double del = 0.01; // Point where LOS intersects the center of the beam, offset from end of optics simulation
   double zTl = (xTl)/tan(theta);
   double zT = lSim + del + zTl;
   Vec3D vecT = Vec3D(xT,0,zT);
