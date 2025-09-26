@@ -73,35 +73,35 @@ int main( int argc, char **argv )
   TF1 *f1 = new TF1("f1","[0]*exp(-0.5*((x-[1])/[2])^2) + [3]*exp(-0.5*((x-[1])/[4])^2)",e1,e12 - overlap_offset_1);
   TF1 *f2 = new TF1("f2","[0]*exp(-0.5*((x-[1])/[2])^2) + [3]*exp(-0.5*((x-[1])/[4])^2)",e12 + overlap_offset_1, e23 - overlap_offset_2);
   TF1 *f3 = new TF1("f3","[0]*exp(-0.5*((x-[1])/[2])^2) + [3]*exp(-0.5*((x-[1])/[4])^2)", e23 + overlap_offset_2, e3);
-  f1->SetParameter(0,100000);
+  f1->SetParameter(0,200);
   f1->SetParLimits(0,0,500000);
   f1->SetParameter(1,h1c);
   f1->SetParLimits(1,400,800);
   f1->SetParameter(2,0.02);
   f1->SetParLimits(2,0,1);
-  f1->SetParameter(3,10000);
+  f1->SetParameter(3,100);
   f1->SetParLimits(3,0,500000);
   f1->SetParameter(4,0.04);
   f1->SetParLimits(4,0,1);
   
-  f2->SetParameter(0,20000);
+  f2->SetParameter(0,200);
   f2->SetParLimits(0,0,500000);
   f2->SetParameter(1,h2c);
   f2->SetParLimits(1,400,800);
   f2->SetParameter(2,0.02);
   f2->SetParLimits(2,0.001,1);
-  f2->SetParameter(3,10000);
+  f2->SetParameter(3,100);
   f2->SetParLimits(3,0,500000);
   f2->SetParameter(4,0.03);
   f2->SetParLimits(4,0,1);
   
-  f3->SetParameter(0,20000);
+  f3->SetParameter(0,200);
   f3->SetParLimits(0,0,500000);
   f3->SetParameter(1,h3c);
   f3->SetParLimits(1,400,800);
   f3->SetParameter(2,0.02);
   f3->SetParLimits(2,0,1);
-  f3->SetParameter(3,10000);
+  f3->SetParameter(3,100);
   f3->SetParLimits(3,0,500000);
   f3->SetParameter(4,0.03);
   f3->SetParLimits(4,0,1);
@@ -148,7 +148,14 @@ int main( int argc, char **argv )
   cout<<"1_e width 3 = " << w3 <<endl;
 
   TCanvas *c1 = new TCanvas("c1", "BES Results", 2000, 1000);
-  h1->Draw();
+  h1->SetLineWidth(2);
+  h1->GetXaxis()->CenterTitle(true);
+  h1->GetYaxis()->CenterTitle(true);
+  h1->SetTitle("BES results; Wavelength (nm); Counts");
+  h1->Draw("HIST 9");
+  f1->Draw("Same");
+  f2->Draw("Same");
+  f3->Draw("Same");
   c1->SaveAs("h_fit.png");
 
   ofstream resultfile( "hist_results.txt" );

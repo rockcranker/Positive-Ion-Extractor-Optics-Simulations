@@ -8,7 +8,7 @@ Provides tools for optic simulations and related analysis using IBSIMU simulatio
 ### Requirements
 IBSIMU: Follow installation instructions (https://ibsimu.sourceforge.net/installation.html), and update makefile based on install location. See examples on the website for reference.
 
-ROOT: Installed by default on RAT2 and RAT4 servers. If installed correctly, should work with no modifications to makefile. Used for histograms, plots, curve fitting. Code could be modified to remove dependency if needed or if external tools are used.
+CERN ROOT: (https://root.cern/install/). Installed by default on RAT2 and RAT4 servers. If installed correctly, should work with no modifications to makefile. Used for histograms, plots, curve fitting. Code could be modified to remove dependency if needed or if external tools are used.
 
 ### Workflow
 The suggested workflow is:

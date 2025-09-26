@@ -248,7 +248,7 @@ void simu( int argc, char **argv )
   for (size_t j = 0; j < npart; j++){
     if(j % 100000 == 0){
       cout << "particle " << j << "\n";
-      cout << detections << "\n";	
+      cout << "detections: " << detections << "\n";	
     }
 
     // find intersection with planes to define simulated track
@@ -287,12 +287,18 @@ void simu( int argc, char **argv )
 
     // simulate emissions
     for(int k = 0; k < n_seg; k++){
+	    
       track_fraction = (k + 0.5)/n_seg;
       travel = track_fraction * track;
       seg = P1 + travel;
       seg2tel = vecT - seg;
 
       for(int l = 0; l < n_bund; l++){
+	u = getRandom(0.0, 1.0);
+       if (u > bundle){
+	continue;
+       }
+	      
 	// sample direction
 	u = getRandom(umin, 1);
 	moff = tan(acos(u));
@@ -317,7 +323,7 @@ void simu( int argc, char **argv )
 	  // random offset
 	  h += getRandomGauss(0, 0.025); // 25 picometers error
 	  
-	  W.push_back(bundle);
+	  W.push_back(1);
 	  H.push_back(h);
 
 	  // visualization
@@ -400,6 +406,19 @@ void simu( int argc, char **argv )
   auto h1 = new TH1D("h1", "BES Results", nbins, min_h,max_h);
   h1->FillN(detections,H.data(),W.data());
   h1->FillN(n_unshift, HU.data(), WU.data());
+  
+
+  // Write histogram data to file
+  cout << "Hist data file \n";
+  ofstream histdata("histdata.txt");
+  double low_edge, high_edge, bin_counts;
+  for(int bin = 1; bin < nbins; bin++){
+    low_edge = h1->GetBinLowEdge(bin);
+    high_edge = h1->GetBinLowEdge(bin+1);
+    bin_counts = h1->GetBinContent(bin);
+    histdata << low_edge << "\t" << high_edge << "\t" << bin_counts << "\n";
+  }
+  histdata.close();
 
   int b_max = h1->GetMaximumBin();
   TLine *line_ha = new TLine(ha, 0, ha, h1->GetBinContent(b_max));
@@ -407,28 +426,17 @@ void simu( int argc, char **argv )
   line_ha->SetLineWidth(4);
   h1->SetLineWidth(4);
 
-  TCanvas *ch = new TCanvas("ch", "Canvas BES Hist", 10000, 5000);
+  TCanvas *ch = new TCanvas("ch", "Canvas BES Hist", 3000, 1500);
   h1->SetStats(0);
   h1->Draw("hist");
+  h1->GetXaxis()->CenterTitle(true);
+  h1->GetYaxis()->CenterTitle(true);
+  h1->SetTitle("BES results; Wavelength (nm); Counts");
   line_ha->Draw();
   cout << "Creating graph \n";
   ch->SaveAs("BES_out.png");
   fout.WriteObject(h1, "h1");
   fout.Close();
-
-
-  // Write histogram data to file
-  cout << "Hist data file \n";
-  ofstream histdata("histdata.txt");
-  double low_edge, high_edge, bin_counts;
-  for(size_t bin = 1; bin < nbins; bin++){
-    low_edge = h1->GetBinLowEdge(bin);
-    high_edge = h1->GetBinLowEdge(bin+1);
-    bin_counts = h1->GetBinContent(bin);
-    histdata << low_edge << "\t" << high_edge << "\t" << bin_counts << "\n";
-  }
-  histdata.close();
-  
   
   // visualize stopped particle trajectories, detections, in z-x and z-y
   bool BES_sample_viz = false;
